@@ -89,6 +89,7 @@ const provider = Sb.createPropProviderWithCommon({
       ...(props.message.type === 'attachment'
         ? [{onClick: Sb.action('onDownload'), title: 'Download'}]
         : [
+            {onClick: Sb.action('onCopyLink'), title: 'Copy a link to this message'},
             {onClick: Sb.action('onEdit'), title: 'Edit'},
             {onClick: Sb.action('onCopy'), title: 'Copy text'},
           ]),

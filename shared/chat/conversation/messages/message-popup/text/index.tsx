@@ -13,6 +13,7 @@ type Props = {
   deviceType: DeviceType
   onAddReaction?: () => void
   onCopy?: () => void
+  onCopyLink?: () => void
   onDelete?: () => void
   onDeleteMessageHistory?: () => void
   onEdit?: () => void
@@ -58,6 +59,7 @@ const TextPopupMenu = (props: Props) => {
       : []),
     ...(props.onAddReaction ? [{onClick: props.onAddReaction, title: 'Add a reaction'}] : []),
     ...(props.onCopy ? [{onClick: props.onCopy, title: 'Copy text'}] : []),
+    ...(props.onCopyLink ? [{onClick: props.onCopyLink, title: 'Copy a link to this message'}] : []),
     ...(props.onReply ? [{onClick: props.onReply, title: 'Reply'}] : []),
     ...(props.onReplyPrivately ? [{onClick: props.onReplyPrivately, title: 'Reply privately'}] : []),
     ...(props.onPinMessage ? [{onClick: props.onPinMessage, title: 'Pin message'}] : []),

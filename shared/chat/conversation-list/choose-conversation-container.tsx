@@ -18,20 +18,11 @@ const mapStateToProps = (state, ownProps) => ({
 
 const mapDispatchToProps = () => ({})
 
-// Temporary until we make proper component for dropdown button content.
-const getConversationText = (conv: Types.ConversationMeta): string => {
-  if (conv.teamType === 'big') {
-    return conv.teamname + '#' + conv.channelname
-  }
-  if (conv.teamType === 'small') {
-    return conv.teamname
-  }
-  return Constants.getRowParticipants(conv, '').join(',')
-}
-
 const mergeProps = (stateProps, _, ownProps: OwnProps) => ({
   ...ownProps,
-  selectedText: stateProps._conv ? getConversationText(stateProps._conv) : 'Choose a conversation',
+  selectedText: stateProps._conv
+    ? Constants.getConversationLabel(stateProps._conv, false)
+    : 'Choose a conversation',
 })
 
 export default namedConnect(mapStateToProps, mapDispatchToProps, mergeProps, 'ChooseConversation')(

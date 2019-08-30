@@ -1792,7 +1792,10 @@ const previewConversationPersonMakesAConversation = (
         conversationIDKey: Constants.pendingWaitingConversationIDKey,
         reason: 'justCreated',
       }),
-      Chat2Gen.createCreateConversation({participants}),
+      Chat2Gen.createCreateConversation({
+        highlightMessageID: action.payload.highlightMessageID,
+        participants,
+      }),
     ]
   )
 }
@@ -1806,11 +1809,18 @@ const previewConversationTeam = (state: TypedState, action: Chat2Gen.PreviewConv
       // Add preview channel to inbox
       return RPCChatTypes.localPreviewConversationByIDLocalRpcPromise({
         convID: Types.keyToConversationID(conversationIDKey),
-      }).then(() => Chat2Gen.createSelectConversation({conversationIDKey, reason: 'previewResolved'}))
+      }).then(() =>
+        Chat2Gen.createSelectConversation({
+          conversationIDKey,
+          highlightMessageID: action.payload.highlightMessageID,
+          reason: 'previewResolved',
+        })
+      )
     }
 
     return Chat2Gen.createSelectConversation({
       conversationIDKey,
+      highlightMessageID: action.payload.highlightMessageID,
       reason: 'previewResolved',
     })
   }
@@ -1865,6 +1875,7 @@ const previewConversationTeam = (state: TypedState, action: Chat2Gen.PreviewConv
         actions.push(
           Chat2Gen.createSelectConversation({
             conversationIDKey,
+            highlightMessageID: action.payload.highlightMessageID,
             reason: 'previewResolved',
           })
         )
@@ -2694,7 +2705,13 @@ function* createConversation(
       if (meta) {
         yield Saga.put(Chat2Gen.createMetasReceived({metas: [meta]}))
       }
-      yield Saga.put(Chat2Gen.createSelectConversation({conversationIDKey, reason: 'justCreated'}))
+      yield Saga.put(
+        Chat2Gen.createSelectConversation({
+          conversationIDKey,
+          highlightMessageID: action.payload.highlightMessageID,
+          reason: 'justCreated',
+        })
+      )
     }
   } catch (e) {
     logger.error(`Failed to create new conversation: ${e.message}`)
@@ -3304,6 +3321,15 @@ const addUsersToChannel = async (
   }
 }
 
+const maybeHighlightMessageID = (_: TypedState, action: Chat2Gen.SelectConversationPayload) =>
+  action.payload.highlightMessageID && action.payload.conversationIDKey
+    ? Chat2Gen.createLoadMessagesCentered({
+        conversationIDKey: action.payload.conversationIDKey,
+        highlightMode: 'flash',
+        messageID: action.payload.highlightMessageID,
+      })
+    : undefined
+
 const onMarkInboxSearchOld = (state: TypedState) =>
   state.chat2.inboxShowNew &&
   GregorGen.createUpdateCategory({body: 'true', category: Constants.inboxSearchNewKey})
@@ -3694,6 +3720,8 @@ function* chat2Saga(): Saga.SagaGenerator<any, any> {
   )
 
   yield* Saga.chainAction2(Chat2Gen.selectConversation, refreshPreviousSelected)
+
+  yield* Saga.chainAction2(Chat2Gen.selectConversation, maybeHighlightMessageID)
 
   yield* Saga.chainAction2(EngineGen.connected, onConnect, 'onConnect')
 

@@ -414,6 +414,16 @@ export const getParticipantSuggestions = (state: TypedState, id: Types.Conversat
   return _getParticipantSuggestionsMemoized(participants, teamType)
 }
 
+export const getConversationLabel = (conv: Types.ConversationMeta, includeChannelName: boolean): string => {
+  if (conv.teamType === 'big') {
+    return conv.teamname + '#' + conv.channelname
+  }
+  if (conv.teamType === 'small') {
+    return includeChannelName ? conv.teamname + '#' + conv.channelname : conv.teamname
+  }
+  return getRowParticipants(conv, '').join(',')
+}
+
 export const getChannelSuggestions = (state: TypedState, teamname: string) => {
   if (!teamname) {
     return I.List()

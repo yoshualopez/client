@@ -209,7 +209,10 @@ type _ClearCommandStatusInfoPayload = {readonly conversationIDKey: Types.Convers
 type _ClearPaymentConfirmInfoPayload = void
 type _ConfirmScreenResponsePayload = {readonly accept: boolean}
 type _ConversationErroredPayload = {readonly message: string}
-type _CreateConversationPayload = {readonly participants: Array<string>}
+type _CreateConversationPayload = {
+  readonly highlightMessageID?: number | null
+  readonly participants: Array<string>
+}
 type _DeselectConversationPayload = {readonly ifConversationIDKey: Types.ConversationIDKey}
 type _DesktopNotificationPayload = {
   readonly conversationIDKey: Types.ConversationIDKey
@@ -422,6 +425,7 @@ type _PreviewConversationPayload = {
   readonly teamname?: string
   readonly channelname?: string
   readonly conversationIDKey?: Types.ConversationIDKey
+  readonly highlightMessageID?: number | null
   readonly reason:
     | 'manageView'
     | 'messageLink'
@@ -462,6 +466,7 @@ type _SaveMinWriterRolePayload = {
 }
 type _SelectConversationPayload = {
   readonly conversationIDKey: Types.ConversationIDKey
+  readonly highlightMessageID?: number | null
   readonly reason:
     | 'focused'
     | 'clearSelected'

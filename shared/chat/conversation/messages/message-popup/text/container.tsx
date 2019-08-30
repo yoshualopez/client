@@ -3,6 +3,7 @@ import * as ConfigGen from '../../../../../actions/config-gen'
 import * as Chat2Gen from '../../../../../actions/chat2-gen'
 import * as Constants from '../../../../../constants/chat2'
 import * as Types from '../../../../../constants/types/chat2'
+import * as DeeplinksConstants from '../../../../../constants/deeplinks'
 import * as RouteTreeGen from '../../../../../actions/route-tree-gen'
 import * as Container from '../../../../../util/container'
 import {createShowUserProfile} from '../../../../../actions/profile-gen'
@@ -23,6 +24,7 @@ type OwnProps = {
 const mapStateToProps = (state: Container.TypedState, ownProps: OwnProps) => {
   const message = ownProps.message
   const meta = Constants.getMeta(state, message.conversationIDKey)
+  const _label = Constants.getConversationLabel(meta, true)
   const yourOperations = getCanPerform(state, meta.teamname)
   const _canDeleteHistory = yourOperations && yourOperations.deleteChatHistory
   const _canAdminDelete = yourOperations && yourOperations.deleteOtherMessages
@@ -37,6 +39,7 @@ const mapStateToProps = (state: Container.TypedState, ownProps: OwnProps) => {
     _canPinMessage,
     _isDeleteable: message.isDeleteable,
     _isEditable: message.isEditable,
+    _label,
     _participantsCount,
     _you: state.config.username,
   }
@@ -60,6 +63,10 @@ const mapDispatchToProps = (dispatch: Container.TypedDispatch) => ({
       dispatch(ConfigGen.createCopyToClipboard({text: message.text.stringValue()}))
     }
   },
+  _onCopyLink: (label: string, message: Types.Message) =>
+    dispatch(
+      ConfigGen.createCopyToClipboard({text: DeeplinksConstants.linkFromConvAndMessage(label, message.id)})
+    ),
   _onDelete: (message: Types.Message) =>
     dispatch(
       Chat2Gen.createMessageDelete({conversationIDKey: message.conversationIDKey, ordinal: message.ordinal})
@@ -125,6 +132,7 @@ export default Container.namedConnect(
       isEditable,
       onAddReaction: Container.isMobile ? () => dispatchProps._onAddReaction(message) : undefined,
       onCopy: message.type === 'text' ? () => dispatchProps._onCopy(message) : undefined,
+      onCopyLink: () => dispatchProps._onCopyLink(stateProps._label, message),
       onDelete: isDeleteable ? () => dispatchProps._onDelete(message) : undefined,
       onDeleteMessageHistory: stateProps._canDeleteHistory
         ? () => dispatchProps._onDeleteMessageHistory(message)

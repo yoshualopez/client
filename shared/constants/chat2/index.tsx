@@ -418,6 +418,7 @@ export {
   getChannelSuggestions,
   getCommands,
   getConversationIDKeyMetasToLoad,
+  getConversationLabel,
   getEffectiveRetentionPolicy,
   getMeta,
   getParticipantSuggestions,

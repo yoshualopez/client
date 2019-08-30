@@ -16,6 +16,7 @@
     "selectConversation": {
       "conversationIDKey": "Types.ConversationIDKey",
       // why this happened, sometimes there's different side effects
+      "highlightMessageID?": "number | null",
       "reason": [
         "'focused'", // nav focus changed
         "'clearSelected'", // deselect
@@ -56,6 +57,7 @@
       "teamname?": "string",
       "channelname?": "string",
       "conversationIDKey?": "Types.ConversationIDKey", // we only use this when we click on channel mentions. we could maybe change that plumbing but keeping it for now
+      "highlightMessageID?": "number | null",
       "reason": [
         "'manageView'",
         "'messageLink'",
@@ -80,6 +82,7 @@
     },
     "createConversation": {
       "_description": "Actually start a conversation",
+      "highlightMessageID?": "number | null",
       "participants": "Array<string>"
     },
     "changeFocus": {
