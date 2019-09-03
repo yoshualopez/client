@@ -1199,6 +1199,16 @@ function* loadMoreMessages(
       )
     }
 
+    if (action.type === Chat2Gen.selectConversation && action.payload.highlightMessageID && action.payload.conversationIDKey) {
+      actions.push(Saga.put(
+          Chat2Gen.createLoadMessagesCentered({
+          conversationIDKey: action.payload.conversationIDKey,
+          highlightMode: 'flash',
+          messageID: action.payload.highlightMessageID,
+        })
+      ))
+    }
+
     return actions
   }
 
@@ -3321,15 +3331,6 @@ const addUsersToChannel = async (
   }
 }
 
-const maybeHighlightMessageID = (_: TypedState, action: Chat2Gen.SelectConversationPayload) =>
-  action.payload.highlightMessageID && action.payload.conversationIDKey
-    ? Chat2Gen.createLoadMessagesCentered({
-        conversationIDKey: action.payload.conversationIDKey,
-        highlightMode: 'flash',
-        messageID: action.payload.highlightMessageID,
-      })
-    : undefined
-
 const onMarkInboxSearchOld = (state: TypedState) =>
   state.chat2.inboxShowNew &&
   GregorGen.createUpdateCategory({body: 'true', category: Constants.inboxSearchNewKey})
@@ -3720,8 +3721,6 @@ function* chat2Saga(): Saga.SagaGenerator<any, any> {
   )
 
   yield* Saga.chainAction2(Chat2Gen.selectConversation, refreshPreviousSelected)
-
-  yield* Saga.chainAction2(Chat2Gen.selectConversation, maybeHighlightMessageID)
 
   yield* Saga.chainAction2(EngineGen.connected, onConnect, 'onConnect')
 
