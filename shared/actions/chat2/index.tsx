@@ -1199,14 +1199,20 @@ function* loadMoreMessages(
       )
     }
 
-    if (action.type === Chat2Gen.selectConversation && action.payload.highlightMessageID && action.payload.conversationIDKey) {
-      actions.push(Saga.put(
+    if (
+      action.type === Chat2Gen.selectConversation &&
+      action.payload.highlightMessageID &&
+      action.payload.conversationIDKey
+    ) {
+      actions.push(
+        Saga.put(
           Chat2Gen.createLoadMessagesCentered({
-          conversationIDKey: action.payload.conversationIDKey,
-          highlightMode: 'flash',
-          messageID: action.payload.highlightMessageID,
-        })
-      ))
+            conversationIDKey: action.payload.conversationIDKey,
+            highlightMode: 'flash',
+            messageID: action.payload.highlightMessageID,
+          })
+        )
+      )
     }
 
     return actions
