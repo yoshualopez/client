@@ -37,7 +37,6 @@ export type WindowState = {
 }
 
 export type State = {
-  // if we ever restart handshake up this so we can ignore any waiters for old things
   appFocused: boolean
   appFocusedCount: number
   avatarRefreshCounter: Map<string, number>
@@ -46,6 +45,7 @@ export type State = {
   daemonHandshakeFailedReason: string
   daemonHandshakeRetriesLeft: number
   daemonHandshakeState: DaemonHandshakeState
+  // if we ever restart handshake up this so we can ignore any waiters for old things
   daemonHandshakeVersion: number
   daemonHandshakeWaiters: Map<string, number>
   darkModePreference: DarkModePreference
