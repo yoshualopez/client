@@ -996,7 +996,7 @@ func TestKVStoreMultiUserAndRestrictedBotTeam(t *testing.T) {
 	rCleartextSecret, err = json.Marshal(rSecretData)
 	require.NoError(t, err)
 	rPutArg.EntryValue = string(rCleartextSecret) // update secret
-	rPutArg.BotName = rbot.Username
+	rPutArg.BotName = rbot.Username               // set to key for bot
 	rPutRes, err = rbotHandler.PutKVEntry(ctx, rPutArg)
 	require.NoError(t, err)
 	require.Equal(t, 3, rPutRes.Revision)
@@ -1007,4 +1007,242 @@ func TestKVStoreMultiUserAndRestrictedBotTeam(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, string(rCleartextSecret), rGetRes.EntryValue)
 	require.Equal(t, 3, rGetRes.Revision)
+
+	// Bob deletes restricted bot value
+	rDelArg := keybase1.DelKVEntryArg{
+		SessionID: 0,
+		TeamName:  teamName,
+		Namespace: namespace,
+		EntryKey:  rEntryKey,
+	}
+	rDelRes, err := bobHandler.DelKVEntry(ctx, rDelArg)
+	require.NoError(t, err)
+	require.Equal(t, 4, rDelRes.Revision)
+
+	// Bob still cannot put key for team
+	rPutArg.BotName = "" // unset
+	rPutRes, err = bobHandler.PutKVEntry(ctx, rPutArg)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "updated entries should be keyed for the same bot")
+	aerr, _ = err.(libkb.AppStatusError)
+	if aerr.Code != libkb.SCTeamStorageNotFound {
+		t.Fatalf("expected an SCTeamStorageNotFound error but got %v", err)
+	}
+	t.Logf("bob cannot update restricted bot secret for team key")
+
+	// Bob resets, and is still able to read and update team and restricted bot value
+
+	// RBot resets, and is still able to read and update value
+}
+
+func TestKVStoreRotationsAndResets(t *testing.T) {
+	tcAlice := kvTestSetup(t)
+	defer tcAlice.Cleanup()
+	tcBob := kvTestSetup(t)
+	defer tcBob.Cleanup()
+	tcRBot := kvTestSetup(t)
+	defer tcRBot.Cleanup()
+	ctx := context.Background()
+
+	alice, err := kbtest.CreateAndSignupFakeUser("kvsA", tcAlice.G)
+	require.NoError(t, err)
+	aliceHandler := NewKVStoreHandler(nil, tcAlice.G)
+	bob, err := kbtest.CreateAndSignupFakeUser("kvsB", tcBob.G)
+	require.NoError(t, err)
+	bobHandler := NewKVStoreHandler(nil, tcBob.G)
+	rbot, err := kbtest.CreateAndSignupFakeUser("kvsR", tcRBot.G)
+	require.NoError(t, err)
+	rbotHandler := NewKVStoreHandler(nil, tcRBot.G)
+	settings := keybase1.TeamBotSettings{}
+
+	teamName := alice.Username + "t"
+	teamID, err := teams.CreateRootTeam(ctx, tcAlice.G, teamName, keybase1.TeamSettings{})
+	require.NoError(t, err)
+	require.NotNil(t, teamID)
+	_, err = teams.AddMember(ctx, tcAlice.G, teamName, bob.Username, keybase1.TeamRole_WRITER, nil)
+	require.NoError(t, err)
+	_, err = teams.AddMember(ctx, tcAlice.G, teamName, rbot.Username, keybase1.TeamRole_RESTRICTEDBOT, &settings)
+	require.NoError(t, err)
+	t.Logf("%s created team %s:%s", alice.Username, teamName, teamID)
+
+	namespace := "myapp"
+	expectedRevision := 0
+	entryKey := "asdfasfeasef"
+	secretData := map[string]interface{}{
+		"username":      "hunter2",
+		"email":         "thereal@example.com",
+		"password":      "super random password",
+		"OTP":           "otp secret",
+		"twoFactorAuth": "not-really-anymore",
+	}
+
+	rExpectedRevision := 0
+	rEntryKey := "restricted bot key asdfasdf"
+	rSecretData := map[string]interface{}{
+		"created": "2020-01-14T16:29:44+00:00",
+		"token":   "ASDF1234",
+	}
+
+	for reset := 0; reset < 3; reset++ {
+		for put := 0; put < 2; put++ {
+			// Alice puts a team secret
+			cleartextSecret, err := json.Marshal(secretData)
+			require.NoError(t, err)
+			putArg := keybase1.PutKVEntryArg{
+				SessionID:  0,
+				TeamName:   teamName,
+				Namespace:  namespace,
+				EntryKey:   entryKey,
+				EntryValue: string(cleartextSecret),
+			}
+			expectedRevision++
+			putRes, err := aliceHandler.PutKVEntry(ctx, putArg)
+			require.NoError(t, err)
+			require.Equal(t, expectedRevision, putRes.Revision)
+			t.Logf("alice successfully wrote an entry at revision %v", expectedRevision)
+
+			// Bob updates team secret
+			expectedRevision++
+			putRes, err = bobHandler.PutKVEntry(ctx, putArg)
+			require.NoError(t, err)
+			require.Equal(t, expectedRevision, putRes.Revision)
+			t.Logf("bob successfully updates entry at revision %v", expectedRevision)
+
+			// RBot puts a restricted bot secret
+			rCleartextSecret, err := json.Marshal(rSecretData)
+			require.NoError(t, err)
+			rPutArg := keybase1.PutKVEntryArg{
+				SessionID:  0,
+				TeamName:   teamName,
+				Namespace:  namespace,
+				EntryKey:   rEntryKey,
+				EntryValue: string(rCleartextSecret),
+				BotName:    rbot.Username,
+			}
+			rExpectedRevision++
+			rPutRes, err := rbotHandler.PutKVEntry(ctx, rPutArg)
+			require.NoError(t, err)
+			require.Equal(t, rExpectedRevision, rPutRes.Revision)
+			t.Logf("rbot successfully wrote a restricted bot entry at revision %v", rExpectedRevision)
+
+			// Alice updates restricted bot secret
+			rExpectedRevision++
+			rPutRes, err = aliceHandler.PutKVEntry(ctx, rPutArg)
+			require.NoError(t, err)
+			require.Equal(t, rExpectedRevision, rPutRes.Revision)
+			t.Logf("alice successfully wrote a restricted bot entry at revision %v", rExpectedRevision)
+
+			// Bob updates restricted bot secret
+			/*		rGetArg := keybase1.GetKVEntryArg{
+						TeamName:  teamName,
+						Namespace: namespace,
+						EntryKey:  rEntryKey,
+					}
+					rGetRes, err := bobHandler.GetKVEntry(ctx, rGetArg)
+					require.NoError(t, err)
+					require.Equal(t, string(rCleartextSecret), rGetRes.EntryValue)
+					require.Equal(t, rExpectedRevision, rGetRes.Revision)
+			*/
+
+			rExpectedRevision++
+			rPutRes, err = bobHandler.PutKVEntry(ctx, rPutArg)
+			require.NoError(t, err)
+			require.Equal(t, rExpectedRevision, rPutRes.Revision)
+			t.Logf("bob successfully wrote a restricted bot entry at revision %v", rExpectedRevision)
+		}
+
+		// force key rotation, new generation
+		err = teams.RemoveMember(ctx, tcAlice.G, teamName, bob.Username)
+		require.NoError(t, err)
+		err = teams.RotateKeyVisible(context.TODO(), tcAlice.G, *teamID)
+		require.NoError(t, err)
+		_, err = teams.AddMember(ctx, tcAlice.G, teamName, bob.Username, keybase1.TeamRole_WRITER, nil)
+		require.NoError(t, err)
+		t.Logf("Team key rotation: bob removed then added (%d/4)", reset)
+	}
+
+	/*
+		// RBot can read restricted bot secret
+		rGetArg := keybase1.GetKVEntryArg{
+			TeamName:  teamName,
+			Namespace: namespace,
+			EntryKey:  rEntryKey,
+		}
+		rGetRes, err := rbotHandler.GetKVEntry(ctx, rGetArg)
+		require.NoError(t, err)
+		require.Equal(t, string(rCleartextSecret), rGetRes.EntryValue)
+		require.Equal(t, 1, rGetRes.Revision)
+
+		listNamespacesArg = keybase1.ListKVNamespacesArg{TeamName: teamName}
+		listNamespacesRes, err = rbotHandler.ListKVNamespaces(ctx, listNamespacesArg)
+		require.NoError(t, err)
+		require.EqualValues(t, listNamespacesRes.Namespaces, []string{namespace})
+
+		listEntriesArg = keybase1.ListKVEntriesArg{TeamName: teamName, Namespace: namespace}
+		rExpectedKey := keybase1.KVListEntryKey{EntryKey: rEntryKey, Revision: 1}
+		listEntriesRes, err = rbotHandler.ListKVEntries(ctx, listEntriesArg)
+		require.NoError(t, err)
+		require.EqualValues(t, listEntriesRes.EntryKeys, []keybase1.KVListEntryKey{rExpectedKey})
+		t.Logf("rbot can GET and LIST restricted bot secret")
+
+		// Bob can read restricted bot secret (Alice could also)
+		rGetRes, err = bobHandler.GetKVEntry(ctx, rGetArg)
+		require.NoError(t, err)
+		require.Equal(t, string(rCleartextSecret), rGetRes.EntryValue)
+		require.Equal(t, 1, rGetRes.Revision)
+		listEntriesArg = keybase1.ListKVEntriesArg{TeamName: teamName, Namespace: namespace}
+		listEntriesRes, err = bobHandler.ListKVEntries(ctx, listEntriesArg)
+		require.NoError(t, err)
+		require.EqualValues(t, listEntriesRes.EntryKeys, []keybase1.KVListEntryKey{expectedKey, rExpectedKey})
+		t.Logf("bob can GET and LIST restricted bot secret")
+
+		// Bob can updated restricted bot secret for restricted bot
+		rSecretData = map[string]interface{}{
+			"created": "2020-01-16T16:29:44+00:00",
+			"token":   "GHJK5678",
+		}
+		rCleartextSecret, err = json.Marshal(rSecretData)
+		require.NoError(t, err)
+		rPutArg.EntryValue = string(rCleartextSecret) // update secret
+		rPutRes, err = bobHandler.PutKVEntry(ctx, rPutArg)
+		require.NoError(t, err)
+		require.Equal(t, 2, rPutRes.Revision)
+		t.Logf("bob successfully updated restricted bot secret")
+
+		// RBot can read updated restricted bot secret
+		rGetRes, err = rbotHandler.GetKVEntry(ctx, rGetArg)
+		require.NoError(t, err)
+		require.Equal(t, string(rCleartextSecret), rGetRes.EntryValue)
+		require.Equal(t, 2, rGetRes.Revision)
+
+		// Bob cannot update restricted bot secret for team (not restricted bot)
+		rPutArg.BotName = "" // unset
+		rPutRes, err = bobHandler.PutKVEntry(ctx, rPutArg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "updated entries should be keyed for the same bot")
+		aerr, _ = err.(libkb.AppStatusError)
+		if aerr.Code != libkb.SCTeamStorageNotFound {
+			t.Fatalf("expected an SCTeamStorageNotFound error but got %v", err)
+		}
+		t.Logf("bob cannot update restricted bot secret for team key")
+
+		// RBot can update restricted bot secret
+		rSecretData = map[string]interface{}{
+			"created": "2020-01-26T10:29:34+00:00",
+			"token":   "QWER0246",
+		}
+		rCleartextSecret, err = json.Marshal(rSecretData)
+		require.NoError(t, err)
+		rPutArg.EntryValue = string(rCleartextSecret) // update secret
+		rPutArg.BotName = rbot.Username
+		rPutRes, err = rbotHandler.PutKVEntry(ctx, rPutArg)
+		require.NoError(t, err)
+		require.Equal(t, 3, rPutRes.Revision)
+		t.Logf("rbot successfully updated restricted bot secret")
+
+		// RBot can read updated restricted bot secret
+		rGetRes, err = rbotHandler.GetKVEntry(ctx, rGetArg)
+		require.NoError(t, err)
+		require.Equal(t, string(rCleartextSecret), rGetRes.EntryValue)
+		require.Equal(t, 3, rGetRes.Revision) */
 }

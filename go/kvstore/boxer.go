@@ -58,6 +58,7 @@ func (b *KVStoreRealBoxer) loadAppKey(mctx libkb.MetaContext, teamID keybase1.Te
 	loadArg := keybase1.FastTeamLoadArg{
 		ID:           teamID,
 		Applications: []keybase1.TeamApplication{keybase1.TeamApplication_KVSTORE},
+		ForceRefresh: true,
 	}
 	if generation == nil {
 		loadArg.NeedLatestKey = true
@@ -118,9 +119,13 @@ func (b *KVStoreRealBoxer) fetchRestrictedBotEncryptionKey(mctx libkb.MetaContex
 			return res, gen, err
 		}
 
-		// convert this key in to a TeambotKey
+		// convert this key into a TeambotKey
 		key, _, err := mctx.G().GetTeambotMemberKeyer().GetOrCreateTeambotKey(
 			mctx, entryID.TeamID, botUIDBytes, appKey)
+		fmt.Printf(">>>> err = %+v\n", err)
+		if err != nil {
+			return res, gen, err
+		}
 		var encKey [signencrypt.SecretboxKeySize]byte = key.Seed
 		return encKey, key.Metadata.Generation, nil
 	}
