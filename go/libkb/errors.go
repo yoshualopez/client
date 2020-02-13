@@ -1437,6 +1437,11 @@ func (e APINetError) Error() string {
 	return fmt.Sprintf("API network error: %s", e.Err)
 }
 
+func IsAPINetError(err error) bool {
+	_, ok := err.(APINetError)
+	return ok
+}
+
 //=============================================================================
 
 type NoDecryptionKeyError struct {

@@ -98,7 +98,7 @@ func (h *SaltpackHandler) SaltpackDecrypt(ctx context.Context, arg keybase1.Salt
 	return info, err
 }
 
-func (h *SaltpackHandler) SaltpackEncrypt(ctx context.Context, arg keybase1.SaltpackEncryptArg) (keybase1.SaltpackEncryptResult, error) {
+func (h *SaltpackHandler) SaltpackEncrypt(ctx context.Context, arg keybase1.SaltpackEncryptArg) (res keybase1.SaltpackEncryptResult, err error) {
 	ctx = libkb.WithLogTag(ctx, "SP")
 	cli := h.getStreamUICli()
 	src := libkb.NewRemoteStreamBuffered(arg.Source, cli, arg.SessionID)
@@ -129,7 +129,7 @@ func (h *SaltpackHandler) SaltpackEncrypt(ctx context.Context, arg keybase1.Salt
 	}, nil
 }
 
-func (h *SaltpackHandler) SaltpackSign(ctx context.Context, arg keybase1.SaltpackSignArg) error {
+func (h *SaltpackHandler) SaltpackSign(ctx context.Context, arg keybase1.SaltpackSignArg) (err error) {
 	ctx = libkb.WithLogTag(ctx, "SP")
 	cli := h.getStreamUICli()
 	src := libkb.NewRemoteStreamBuffered(arg.Source, cli, arg.SessionID)
@@ -150,7 +150,7 @@ func (h *SaltpackHandler) SaltpackSign(ctx context.Context, arg keybase1.Saltpac
 	return engine.RunEngine2(m, eng)
 }
 
-func (h *SaltpackHandler) SaltpackVerify(ctx context.Context, arg keybase1.SaltpackVerifyArg) error {
+func (h *SaltpackHandler) SaltpackVerify(ctx context.Context, arg keybase1.SaltpackVerifyArg) (err error) {
 	ctx = libkb.WithLogTag(ctx, "SP")
 	cli := h.getStreamUICli()
 	src := libkb.NewRemoteStreamBuffered(arg.Source, cli, arg.SessionID)
@@ -479,7 +479,9 @@ func (h *SaltpackHandler) encryptOptions(opts keybase1.SaltpackFrontendEncryptOp
 	}
 }
 
-func (h *SaltpackHandler) frontendEncrypt(ctx context.Context, sessionID int, arg *engine.SaltpackEncryptArg) (bool, string, error) {
+func (h *SaltpackHandler) frontendEncrypt(ctx context.Context, sessionID int, arg *engine.SaltpackEncryptArg) (usedSBS bool, SBSAssertion string, err error) {
+	ctx = libkb.WithLogTag(ctx, "fSP")
+	defer h.G().CTraceTimed(ctx, fmt.Sprintf("frontendEncrypt(%+v)", arg), func() error { return err })()
 	uis := libkb.UIs{
 		SecretUI:  &nopSecretUI{},
 		SessionID: sessionID,
@@ -490,11 +492,14 @@ func (h *SaltpackHandler) frontendEncrypt(ctx context.Context, sessionID int, ar
 	eng := engine.NewSaltpackEncrypt(arg, keyfinderHook)
 	m := libkb.NewMetaContext(ctx, h.G()).WithUIs(uis)
 
-	err := engine.RunEngine2(m, eng)
+	err = engine.RunEngine2(m, eng)
 	return eng.UsedSBS, eng.SBSAssertion, err
 }
 
-func (h *SaltpackHandler) frontendDecrypt(ctx context.Context, sessionID int, arg *engine.SaltpackDecryptArg) (keybase1.SaltpackEncryptedMessageInfo, bool, error) {
+func (h *SaltpackHandler) frontendDecrypt(ctx context.Context, sessionID int, arg *engine.SaltpackDecryptArg) (info keybase1.SaltpackEncryptedMessageInfo, verified bool, err error) {
+	ctx = libkb.WithLogTag(ctx, "fSP")
+	defer h.G().CTraceTimed(ctx, fmt.Sprintf("frontendDecrypt(%+v)", arg), func() error { return err })()
+
 	spui := &capSaltpackUI{}
 	uis := libkb.UIs{
 		IdentifyUI: h.NewRemoteIdentifyUI(sessionID, h.G()),
@@ -505,7 +510,7 @@ func (h *SaltpackHandler) frontendDecrypt(ctx context.Context, sessionID int, ar
 	m := libkb.NewMetaContext(ctx, h.G()).WithUIs(uis)
 	resolver := saltpackkeys.NewKeyPseudonymResolver(m)
 	eng := engine.NewSaltpackDecrypt(arg, resolver)
-	if err := engine.RunEngine2(m, eng); err != nil {
+	if err = engine.RunEngine2(m, eng); err != nil {
 		return keybase1.SaltpackEncryptedMessageInfo{}, false, err
 	}
 	return eng.MessageInfo(), spui.verified, nil
