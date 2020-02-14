@@ -8,7 +8,6 @@ import (
 	"errors"
 	"text/tabwriter"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/keybase/cli"
 	"github.com/keybase/client/go/libcmdline"
 	"github.com/keybase/client/go/libkb"
@@ -131,8 +130,6 @@ func (c *CmdTeamListMemberships) runGet(cli keybase1.TeamsClient) error {
 	if err != nil {
 		return err
 	}
-
-	spew.Dump(details)
 
 	renderer := newTeamMembersRenderer(c.G(), c.json, c.showInviteID)
 	return renderer.output(details, c.team, c.verbose)
