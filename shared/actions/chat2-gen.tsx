@@ -522,6 +522,7 @@ type _PreviewConversationPayload = {
   readonly channelname?: string
   readonly conversationIDKey?: Types.ConversationIDKey
   readonly reason:
+    | 'channelHeader'
     | 'manageView'
     | 'messageLink'
     | 'resetChatWithoutThem'
