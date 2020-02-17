@@ -319,6 +319,24 @@ func LoadUser(arg LoadUserArg) (ret *User, err error) {
 	m := arg.MetaContext().WithLogTag("LU")
 	defer m.TraceTimed(fmt.Sprintf("LoadUser(%s)", arg), func() error { return err })()
 	defer m.PerfTrace(fmt.Sprintf("LoadUser(%s)", arg), func() error { return err })()
+	start := time.Now()
+	defer func() {
+		var message string
+		if err == nil && ret != nil {
+			message = fmt.Sprintf("Loaded @%s", ret.GetName())
+		} else {
+			identifer := arg.name
+			if identifer == "" {
+				identifer = arg.uid.String()
+			}
+			message = fmt.Sprintf("Failed to load %s", identifer)
+		}
+		m.G().NotifyRouter.HandlePerfLogEvent(m.Ctx(), keybase1.PerfLogEvent{
+			EventType: keybase1.PerfLogEventType_LOAD_USER,
+			Message:   message,
+			Ctime:     keybase1.ToTime(start),
+		})
+	}()
 
 	var refresh bool
 

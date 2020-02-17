@@ -39,6 +39,7 @@ type NotificationChannels struct {
 	Runtimestats     bool `codec:"runtimestats" json:"runtimestats"`
 	FeaturedBots     bool `codec:"featuredBots" json:"featuredBots"`
 	Saltpack         bool `codec:"saltpack" json:"saltpack"`
+	PerfLogEvents    bool `codec:"perfLogEvents" json:"perfLogEvents"`
 }
 
 func (o NotificationChannels) DeepCopy() NotificationChannels {
@@ -72,6 +73,7 @@ func (o NotificationChannels) DeepCopy() NotificationChannels {
 		Runtimestats:     o.Runtimestats,
 		FeaturedBots:     o.FeaturedBots,
 		Saltpack:         o.Saltpack,
+		PerfLogEvents:    o.PerfLogEvents,
 	}
 }
 

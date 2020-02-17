@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/keybase/cli"
 	"github.com/keybase/client/go/libcmdline"
 	"github.com/keybase/client/go/libkb"
@@ -40,14 +41,16 @@ func (c *CmdShowNotifications) Run() error {
 		keybase1.NotifyTrackingProtocol(display),
 		keybase1.NotifyAuditProtocol(display),
 		keybase1.NotifyRuntimeStatsProtocol(display),
+		keybase1.NotifyPerfLogEventsProtocol(display),
 	}
 	channels := keybase1.NotificationChannels{
-		Session:      true,
-		Users:        true,
-		Kbfs:         true,
-		Tracking:     true,
-		Audit:        true,
-		Runtimestats: true,
+		Session:       true,
+		Users:         true,
+		Kbfs:          true,
+		Tracking:      true,
+		Audit:         true,
+		Runtimestats:  true,
+		PerfLogEvents: true,
 	}
 
 	if err := RegisterProtocolsWithContext(protocols, c.G()); err != nil {
@@ -240,4 +243,8 @@ func (d *notificationDisplay) FSSubscriptionNotifyPath(_ context.Context, arg ke
 }
 func (d *notificationDisplay) IdentifyUpdate(_ context.Context, arg keybase1.IdentifyUpdateArg) error {
 	return d.printf("identify update: ok:%v broken:%v\n", arg.OkUsernames, arg.BrokenUsernames)
+}
+func (d *notificationDisplay) PerfLogEventUpdate(
+	_ context.Context, event keybase1.PerfLogEvent) (err error) {
+	return d.printf("Perf log: %s @ %s\n", event.Message, humanize.Time(event.Ctime.Time()))
 }

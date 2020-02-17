@@ -1,0 +1,19 @@
+@namespace("keybase.1")
+protocol NotifyPerfLogEvents {
+  import idl "common.avdl";
+
+  enum PerfLogEventType {
+    LOAD_USER_0,
+    LOAD_TEAM_1,
+    LOAD_TEAM_FAST_2,
+    AUDIT_TEAM_3,
+    BOX_AUDIT_4
+  }
+
+  record PerfLogEvent {
+    PerfLogEventType eventType;
+    string message;
+    Time ctime;
+  }
+  void perfLogEventUpdate(PerfLogEvent event) oneway;
+}

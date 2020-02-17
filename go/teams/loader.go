@@ -467,6 +467,33 @@ func (l *TeamLoader) load2(ctx context.Context, arg load2ArgT) (ret *load2ResT, 
 
 	defer l.G().CTraceTimed(ctx, traceLabel, func() error { return err })()
 	defer l.G().CPerfTrace(ctx, traceLabel, func() error { return err })()
+	start := time.Now()
+	defer func() {
+		var message string
+		if err == nil && ret != nil {
+			team := NewTeam(ctx, l.G(), &ret.team, ret.hidden)
+			name := team.Name().String()
+			if team.IsImplicit() {
+				iname, ierr := team.ImplicitTeamDisplayName(ctx)
+				if ierr != nil {
+					l.G().Log.CDebugf(ctx, "Unable to load implicit team display name %s", ierr)
+				} else {
+					name = iname.String()
+				}
+			}
+			message = fmt.Sprintf("Loaded team %s", name)
+			if arg.reason != "" {
+				message += fmt.Sprintf(" %q", arg.reason)
+			}
+		} else {
+			message = fmt.Sprintf("Failed to load %s", arg.teamID)
+		}
+		l.G().NotifyRouter.HandlePerfLogEvent(ctx, keybase1.PerfLogEvent{
+			EventType: keybase1.PerfLogEventType_LOAD_TEAM,
+			Message:   message,
+			Ctime:     keybase1.ToTime(start),
+		})
+	}()
 	ret, err = l.load2Inner(ctx, arg)
 	return ret, err
 }

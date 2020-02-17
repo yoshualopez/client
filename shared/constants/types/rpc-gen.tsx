@@ -135,6 +135,10 @@ export type MessageTypes = {
     inParam: {readonly uid: UID; readonly encKID: KID; readonly sigKID: KID}
     outParam: void
   }
+  'keybase.1.NotifyPerfLogEvents.perfLogEventUpdate': {
+    inParam: {readonly event: PerfLogEvent}
+    outParam: void
+  }
   'keybase.1.NotifyPhoneNumber.phoneNumbersChanged': {
     inParam: {readonly list?: Array<UserPhoneNumber> | null; readonly category: String; readonly phoneNumber: PhoneNumber}
     outParam: void
@@ -2003,6 +2007,14 @@ export enum PerTeamSeedCheckVersion {
   v1 = 1,
 }
 
+export enum PerfLogEventType {
+  loadUser = 0,
+  loadTeam = 1,
+  loadTeamFast = 2,
+  auditTeam = 3,
+  boxAudit = 4,
+}
+
 export enum PrefetchStatus {
   notStarted = 0,
   inProgress = 1,
@@ -2909,7 +2921,7 @@ export type NaclSigningKeyPrivate = string | null
 export type NaclSigningKeyPublic = string | null
 export type NextMerkleRootRes = {readonly res?: MerkleRootV2 | null}
 export type NonUserDetails = {readonly isNonUser: Boolean; readonly assertionValue: String; readonly assertionKey: String; readonly description: String; readonly contact?: ProcessedContact | null; readonly service?: APIUserServiceResult | null; readonly siteIcon?: Array<SizedImage> | null; readonly siteIconDarkmode?: Array<SizedImage> | null; readonly siteIconFull?: Array<SizedImage> | null; readonly siteIconFullDarkmode?: Array<SizedImage> | null}
-export type NotificationChannels = {readonly session: Boolean; readonly users: Boolean; readonly kbfs: Boolean; readonly kbfsdesktop: Boolean; readonly kbfslegacy: Boolean; readonly kbfssubscription: Boolean; readonly tracking: Boolean; readonly favorites: Boolean; readonly paperkeys: Boolean; readonly keyfamily: Boolean; readonly service: Boolean; readonly app: Boolean; readonly chat: Boolean; readonly pgp: Boolean; readonly kbfsrequest: Boolean; readonly badges: Boolean; readonly reachability: Boolean; readonly team: Boolean; readonly ephemeral: Boolean; readonly teambot: Boolean; readonly chatkbfsedits: Boolean; readonly chatdev: Boolean; readonly deviceclone: Boolean; readonly chatattachments: Boolean; readonly wallet: Boolean; readonly audit: Boolean; readonly runtimestats: Boolean; readonly featuredBots: Boolean; readonly saltpack: Boolean}
+export type NotificationChannels = {readonly session: Boolean; readonly users: Boolean; readonly kbfs: Boolean; readonly kbfsdesktop: Boolean; readonly kbfslegacy: Boolean; readonly kbfssubscription: Boolean; readonly tracking: Boolean; readonly favorites: Boolean; readonly paperkeys: Boolean; readonly keyfamily: Boolean; readonly service: Boolean; readonly app: Boolean; readonly chat: Boolean; readonly pgp: Boolean; readonly kbfsrequest: Boolean; readonly badges: Boolean; readonly reachability: Boolean; readonly team: Boolean; readonly ephemeral: Boolean; readonly teambot: Boolean; readonly chatkbfsedits: Boolean; readonly chatdev: Boolean; readonly deviceclone: Boolean; readonly chatattachments: Boolean; readonly wallet: Boolean; readonly audit: Boolean; readonly runtimestats: Boolean; readonly featuredBots: Boolean; readonly saltpack: Boolean; readonly perfLogEvents: Boolean}
 export type OpDescription = {asyncOp: AsyncOps.list; list: ListArgs} | {asyncOp: AsyncOps.listRecursive; listRecursive: ListArgs} | {asyncOp: AsyncOps.listRecursiveToDepth; listRecursiveToDepth: ListToDepthArgs} | {asyncOp: AsyncOps.read; read: ReadArgs} | {asyncOp: AsyncOps.write; write: WriteArgs} | {asyncOp: AsyncOps.copy; copy: CopyArgs} | {asyncOp: AsyncOps.move; move: MoveArgs} | {asyncOp: AsyncOps.remove; remove: RemoveArgs} | {asyncOp: AsyncOps.getRevisions; getRevisions: GetRevisionsArgs}
 export type OpID = string | null
 export type OpProgress = {readonly start: Time; readonly endEstimate: Time; readonly opType: AsyncOps; readonly bytesTotal: Int64; readonly bytesRead: Int64; readonly bytesWritten: Int64; readonly filesTotal: Int64; readonly filesRead: Int64; readonly filesWritten: Int64}
@@ -2941,6 +2953,7 @@ export type PerTeamSeedCheckValuePostImage = Bytes
 export type PerUserKey = {readonly gen: Int; readonly seqno: Seqno; readonly sigKID: KID; readonly encKID: KID; readonly signedByKID: KID}
 export type PerUserKeyBox = {readonly generation: PerUserKeyGeneration; readonly box: String; readonly receiverKID: KID}
 export type PerUserKeyGeneration = Int
+export type PerfLogEvent = {readonly eventType: PerfLogEventType; readonly message: String; readonly ctime: Time}
 export type PhoneLookupResult = {readonly uid: UID; readonly username: String; readonly ctime: UnixTime}
 export type PhoneNumber = String
 export type PhoneNumberChangedMsg = {readonly phoneNumber: PhoneNumber}
@@ -3281,6 +3294,7 @@ export type IncomingCallMapType = {
   'keybase.1.NotifyFS.FSSubscriptionNotify'?: (params: MessageTypes['keybase.1.NotifyFS.FSSubscriptionNotify']['inParam'] & {sessionID: number}) => IncomingReturn
   'keybase.1.NotifyKeyfamily.keyfamilyChanged'?: (params: MessageTypes['keybase.1.NotifyKeyfamily.keyfamilyChanged']['inParam'] & {sessionID: number}) => IncomingReturn
   'keybase.1.NotifyPaperKey.paperKeyCached'?: (params: MessageTypes['keybase.1.NotifyPaperKey.paperKeyCached']['inParam'] & {sessionID: number}) => IncomingReturn
+  'keybase.1.NotifyPerfLogEvents.perfLogEventUpdate'?: (params: MessageTypes['keybase.1.NotifyPerfLogEvents.perfLogEventUpdate']['inParam'] & {sessionID: number}) => IncomingReturn
   'keybase.1.NotifyPGP.pgpKeyInSecretStoreFile'?: (params: MessageTypes['keybase.1.NotifyPGP.pgpKeyInSecretStoreFile']['inParam'] & {sessionID: number}) => IncomingReturn
   'keybase.1.NotifyPhoneNumber.phoneNumbersChanged'?: (params: MessageTypes['keybase.1.NotifyPhoneNumber.phoneNumbersChanged']['inParam'] & {sessionID: number}) => IncomingReturn
   'keybase.1.NotifyRuntimeStats.runtimeStatsUpdate'?: (params: MessageTypes['keybase.1.NotifyRuntimeStats.runtimeStatsUpdate']['inParam'] & {sessionID: number}) => IncomingReturn
@@ -3413,6 +3427,7 @@ export type CustomResponseIncomingCallMap = {
   'keybase.1.NotifyFS.FSSubscriptionNotify'?: (params: MessageTypes['keybase.1.NotifyFS.FSSubscriptionNotify']['inParam'] & {sessionID: number}, response: {error: IncomingErrorCallback; result: (res: MessageTypes['keybase.1.NotifyFS.FSSubscriptionNotify']['outParam']) => void}) => IncomingReturn
   'keybase.1.NotifyKeyfamily.keyfamilyChanged'?: (params: MessageTypes['keybase.1.NotifyKeyfamily.keyfamilyChanged']['inParam'] & {sessionID: number}, response: {error: IncomingErrorCallback; result: (res: MessageTypes['keybase.1.NotifyKeyfamily.keyfamilyChanged']['outParam']) => void}) => IncomingReturn
   'keybase.1.NotifyPaperKey.paperKeyCached'?: (params: MessageTypes['keybase.1.NotifyPaperKey.paperKeyCached']['inParam'] & {sessionID: number}, response: {error: IncomingErrorCallback; result: (res: MessageTypes['keybase.1.NotifyPaperKey.paperKeyCached']['outParam']) => void}) => IncomingReturn
+  'keybase.1.NotifyPerfLogEvents.perfLogEventUpdate'?: (params: MessageTypes['keybase.1.NotifyPerfLogEvents.perfLogEventUpdate']['inParam'] & {sessionID: number}, response: {error: IncomingErrorCallback; result: (res: MessageTypes['keybase.1.NotifyPerfLogEvents.perfLogEventUpdate']['outParam']) => void}) => IncomingReturn
   'keybase.1.NotifyPGP.pgpKeyInSecretStoreFile'?: (params: MessageTypes['keybase.1.NotifyPGP.pgpKeyInSecretStoreFile']['inParam'] & {sessionID: number}, response: {error: IncomingErrorCallback; result: (res: MessageTypes['keybase.1.NotifyPGP.pgpKeyInSecretStoreFile']['outParam']) => void}) => IncomingReturn
   'keybase.1.NotifyPhoneNumber.phoneNumbersChanged'?: (params: MessageTypes['keybase.1.NotifyPhoneNumber.phoneNumbersChanged']['inParam'] & {sessionID: number}, response: {error: IncomingErrorCallback; result: (res: MessageTypes['keybase.1.NotifyPhoneNumber.phoneNumbersChanged']['outParam']) => void}) => IncomingReturn
   'keybase.1.NotifyRuntimeStats.runtimeStatsUpdate'?: (params: MessageTypes['keybase.1.NotifyRuntimeStats.runtimeStatsUpdate']['inParam'] & {sessionID: number}, response: {error: IncomingErrorCallback; result: (res: MessageTypes['keybase.1.NotifyRuntimeStats.runtimeStatsUpdate']['outParam']) => void}) => IncomingReturn
@@ -3942,6 +3957,7 @@ export const userUserCardRpcPromise = (params: MessageTypes['keybase.1.user.user
 // 'keybase.1.NotifyFSRequest.FSSyncStatusRequest'
 // 'keybase.1.NotifyKeyfamily.keyfamilyChanged'
 // 'keybase.1.NotifyPaperKey.paperKeyCached'
+// 'keybase.1.NotifyPerfLogEvents.perfLogEventUpdate'
 // 'keybase.1.NotifyPGP.pgpKeyInSecretStoreFile'
 // 'keybase.1.NotifyPhoneNumber.phoneNumbersChanged'
 // 'keybase.1.NotifyRuntimeStats.runtimeStatsUpdate'

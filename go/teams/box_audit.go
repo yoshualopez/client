@@ -205,13 +205,26 @@ func (a *BoxAuditor) initMctx(mctx libkb.MetaContext) libkb.MetaContext {
 // caused.
 func (a *BoxAuditor) BoxAuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID) (attempt *keybase1.BoxAuditAttempt, err error) {
 	mctx = a.initMctx(mctx)
-	defer mctx.TraceTimed(fmt.Sprintf("BoxAuditTeam(%s)", teamID), func() error { return err })()
-	defer mctx.PerfTrace(fmt.Sprintf("BoxAuditTeam(%s)", teamID), func() error { return err })()
-
 	if !ShouldRunBoxAudit(mctx) {
 		mctx.Debug("Box auditor feature flagged off or not logged in; not auditing...")
 		return nil, nil
 	}
+	defer mctx.TraceTimed(fmt.Sprintf("BoxAuditTeam(%s)", teamID), func() error { return err })()
+	defer mctx.PerfTrace(fmt.Sprintf("BoxAuditTeam(%s)", teamID), func() error { return err })()
+	start := time.Now()
+	defer func() {
+		var message string
+		if err == nil {
+			message = fmt.Sprintf("Audited boxes for team %s", teamID)
+		} else {
+			message = fmt.Sprintf("Failed to box audit %s", teamID)
+		}
+		mctx.G().NotifyRouter.HandlePerfLogEvent(mctx.Ctx(), keybase1.PerfLogEvent{
+			EventType: keybase1.PerfLogEventType_BOX_AUDIT,
+			Message:   message,
+			Ctime:     keybase1.ToTime(start),
+		})
+	}()
 
 	lock := a.locktab.AcquireOnName(mctx.Ctx(), mctx.G(), teamID.String())
 	defer lock.Release(mctx.Ctx())

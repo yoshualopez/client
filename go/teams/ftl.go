@@ -120,6 +120,21 @@ func (f *FastTeamChainLoader) Load(m libkb.MetaContext, arg keybase1.FastTeamLoa
 	m = ftlLogTag(m)
 	defer m.TraceTimed(fmt.Sprintf("FastTeamChainLoader#Load(%+v)", arg), func() error { return err })()
 	defer m.PerfTrace(fmt.Sprintf("FastTeamChainLoader#Load(%+v)", arg), func() error { return err })()
+	start := time.Now()
+	defer func() {
+		var message string
+		if err == nil {
+			message = fmt.Sprintf("Fast team loaded %s", res.Name)
+		} else {
+			message = fmt.Sprintf("Failed to fast load %s", arg.ID)
+		}
+		m.G().NotifyRouter.HandlePerfLogEvent(m.Ctx(), keybase1.PerfLogEvent{
+			EventType: keybase1.PerfLogEventType_LOAD_TEAM_FAST,
+			Message:   message,
+			Ctime:     keybase1.ToTime(start),
+		})
+	}()
+
 	originalArg := arg.DeepCopy()
 
 	err = f.featureFlagGate.ErrorIfFlagged(m)

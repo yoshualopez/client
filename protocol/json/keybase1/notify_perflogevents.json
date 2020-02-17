@@ -1,0 +1,53 @@
+{
+  "protocol": "NotifyPerfLogEvents",
+  "imports": [
+    {
+      "path": "common.avdl",
+      "type": "idl"
+    }
+  ],
+  "types": [
+    {
+      "type": "enum",
+      "name": "PerfLogEventType",
+      "symbols": [
+        "LOAD_USER_0",
+        "LOAD_TEAM_1",
+        "LOAD_TEAM_FAST_2",
+        "AUDIT_TEAM_3",
+        "BOX_AUDIT_4"
+      ]
+    },
+    {
+      "type": "record",
+      "name": "PerfLogEvent",
+      "fields": [
+        {
+          "type": "PerfLogEventType",
+          "name": "eventType"
+        },
+        {
+          "type": "string",
+          "name": "message"
+        },
+        {
+          "type": "Time",
+          "name": "ctime"
+        }
+      ]
+    }
+  ],
+  "messages": {
+    "perfLogEventUpdate": {
+      "request": [
+        {
+          "name": "event",
+          "type": "PerfLogEvent"
+        }
+      ],
+      "response": null,
+      "oneway": true
+    }
+  },
+  "namespace": "keybase.1"
+}

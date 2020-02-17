@@ -100,6 +100,7 @@ type NotifyListener interface {
 	RootAuditError(msg string)
 	BoxAuditError(msg string)
 	RuntimeStatsUpdate(*keybase1.RuntimeStats)
+	PerfLogEvent(keybase1.PerfLogEvent)
 	HTTPSrvInfoUpdate(keybase1.HttpSrvInfo)
 	IdentifyUpdate(okUsernames []string, brokenUsernames []string)
 	Reachability(keybase1.Reachability)
@@ -231,6 +232,7 @@ func (n *NoopNotifyListener) PasswordChanged()                          {}
 func (n *NoopNotifyListener) RootAuditError(msg string)                 {}
 func (n *NoopNotifyListener) BoxAuditError(msg string)                  {}
 func (n *NoopNotifyListener) RuntimeStatsUpdate(*keybase1.RuntimeStats) {}
+func (n *NoopNotifyListener) PerfLogEvent(keybase1.PerfLogEvent)        {}
 func (n *NoopNotifyListener) HTTPSrvInfoUpdate(keybase1.HttpSrvInfo)    {}
 func (n *NoopNotifyListener) IdentifyUpdate(okUsernames []string, brokenUsernames []string) {
 }
@@ -2593,6 +2595,25 @@ func (n *NotifyRouter) HandleRuntimeStatsUpdate(ctx context.Context, stats *keyb
 	})
 	n.runListeners(func(listener NotifyListener) {
 		listener.RuntimeStatsUpdate(stats)
+	})
+}
+
+func (n *NotifyRouter) HandlePerfLogEvent(ctx context.Context, event keybase1.PerfLogEvent) {
+	if n == nil {
+		return
+	}
+	n.cm.ApplyAll(func(id ConnectionID, xp rpc.Transporter) bool {
+		if n.getNotificationChannels(id).PerfLogEvents {
+			go func() {
+				_ = (keybase1.NotifyPerfLogEventsClient{
+					Cli: rpc.NewClient(xp, NewContextifiedErrorUnwrapper(n.G()), nil),
+				}).PerfLogEventUpdate(ctx, event)
+			}()
+		}
+		return true
+	})
+	n.runListeners(func(listener NotifyListener) {
+		listener.PerfLogEvent(event)
 	})
 }
 

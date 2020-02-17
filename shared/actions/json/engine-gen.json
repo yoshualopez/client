@@ -394,6 +394,9 @@
         "keybase1NotifyPaperKeyPaperKeyCached": {
             "params": "keybase1Types.MessageTypes['keybase.1.NotifyPaperKey.paperKeyCached']['inParam'] & {sessionID: number}, response: {error: keybase1Types.IncomingErrorCallback, result: (param: keybase1Types.MessageTypes['keybase.1.NotifyPaperKey.paperKeyCached']['outParam']) => void}"
         },
+        "keybase1NotifyPerfLogEventsPerfLogEventUpdate": {
+            "params": "keybase1Types.MessageTypes['keybase.1.NotifyPerfLogEvents.perfLogEventUpdate']['inParam'] & {sessionID: number}, response: {error: keybase1Types.IncomingErrorCallback, result: (param: keybase1Types.MessageTypes['keybase.1.NotifyPerfLogEvents.perfLogEventUpdate']['outParam']) => void}"
+        },
         "keybase1NotifyPGPPgpKeyInSecretStoreFile": {
             "params": "keybase1Types.MessageTypes['keybase.1.NotifyPGP.pgpKeyInSecretStoreFile']['inParam'] & {sessionID: number}, response: {error: keybase1Types.IncomingErrorCallback, result: (param: keybase1Types.MessageTypes['keybase.1.NotifyPGP.pgpKeyInSecretStoreFile']['outParam']) => void}"
         },
